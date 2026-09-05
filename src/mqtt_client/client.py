@@ -38,9 +38,9 @@ class MqttTelemetryConsumer:
 
     def _on_connect(self, client, userdata, flags, rc, properties=None):
         if rc == 0:
-            logger.info("Connected to MQTT broker at %s:%s", self.settings.broker_host, self.settings.broker_port)
+            logger.debug("Connected to MQTT broker at %s:%s", self.settings.broker_host, self.settings.broker_port)
             client.subscribe(self.settings.topic, qos=self.settings.qos)
-            logger.info("Subscribed to telemetry topic: %s", self.settings.topic)
+            logger.debug("Subscribed to telemetry topic: %s", self.settings.topic)
         else:
             logger.error("Connection failed with MQTT code %s", rc)
 
@@ -66,8 +66,8 @@ class MqttTelemetryConsumer:
         except Exception:
             logger.exception("Failed to store wifi telemetry payload in TimescaleDB")
 
-    def _on_disconnect(self, client, userdata, rc, properties=None):
-        logger.warning("Disconnected from MQTT broker with code %s", rc)
+    def _on_disconnect(self, client, userdata, disconnect_flags, reason_code, properties=None):
+        logger.debug("Disconnected from MQTT broker with code %s", reason_code)
 
     def connect(self) -> None:
         logger.info("Connecting to broker at %s:%s", self.settings.broker_host, self.settings.broker_port)

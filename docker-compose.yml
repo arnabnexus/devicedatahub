@@ -1,12 +1,12 @@
 services:
-  mqtt-broker:
-    image: eclipse-mosquitto:2
-    container_name: mqtt-broker
-    ports:
-      - "1883:1883"
-    volumes:
-      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
-    restart: unless-stopped
+#  mqtt-broker:
+#    image: eclipse-mosquitto:2
+#    container_name: mqtt-broker
+#    ports:
+#      - "1883:1883"
+#    volumes:
+#      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+#    restart: unless-stopped
 
   timescaledb:
     image: timescale/timescaledb:latest-pg16
@@ -21,21 +21,21 @@ services:
       - timescaledb_data:/var/lib/postgresql/data
     restart: unless-stopped
 
-  grafana:
-    image: grafana/grafana-oss:latest
-    container_name: grafana
-    ports:
-      - "3000:3000"
-    environment:
-      GF_SECURITY_ADMIN_USER: admin
-      GF_SECURITY_ADMIN_PASSWORD: admin
-      GF_USERS_ALLOW_SIGN_UP: "false"
-    depends_on:
-      - timescaledb
-    volumes:
-      - grafana_data:/var/lib/grafana
-      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
-    restart: unless-stopped
+      #  grafana:
+      #    image: grafana/grafana-oss:latest
+      # container_name: grafana
+      #ports:
+      #- "3000:3000"
+      #environment:
+      #GF_SECURITY_ADMIN_USER: admin
+      #GF_SECURITY_ADMIN_PASSWORD: admin
+      #GF_USERS_ALLOW_SIGN_UP: "false"
+      #depends_on:
+      #- timescaledb
+      #volumes:
+      #- grafana_data:/var/lib/grafana
+      #- ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      #restart: unless-stopped
 
   mqtt-server:
     build:
@@ -57,9 +57,9 @@ services:
       DB_PASSWORD: postgres
       DB_TABLE: telemetry
     depends_on:
-      - mqtt-broker
+      #      - mqtt-broker
       - timescaledb
-      - grafana
+        #      - grafana
     restart: unless-stopped
 
 volumes:
