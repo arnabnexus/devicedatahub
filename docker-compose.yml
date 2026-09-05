@@ -42,10 +42,11 @@ services:
       context: .
     container_name: mqtt-server
     environment:
-      MQTT_BROKER_HOST: mqtt-broker
-      MQTT_BROKER_PORT: 1883
+      MQTT_BROKER_HOST: 0.tcp.in.ngrok.io
+      MQTT_BROKER_PORT: 17241
       MQTT_CLIENT_ID: telemetry-consumer
-      MQTT_TOPIC: devices/telemetry
+      #MQTT_TOPIC: devices/telemetry
+      MQTT_TOPIC: weh-device/network
       MQTT_QOS: 0
       MQTT_KEEPALIVE: 60
       LOG_LEVEL: INFO

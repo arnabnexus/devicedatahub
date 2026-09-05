@@ -46,68 +46,25 @@ class MqttTelemetryConsumer:
 
     def _on_message(self, client, userdata, msg):
         payload = msg.payload.decode("utf-8", errors="replace")
-        logger.info("Telemetry received from topic '%s': %s", msg.topic, payload)
-
-        device_id = None
-        ap_mac = None
-        serial_number = None
-        firmware_version = None
-        uptime_seconds = None
-        cpu_utilization_pct = None
-        memory_utilization_pct = None
-        connected_clients = None
-        radio_band = None
-        channel = None
-        channel_utilization_pct = None
-        noise_floor_dbm = None
-        max_connected_device = None
-        timestamp_epoch = None
+        logger.info(" ------- Telemetry received from topic '%s': %s \n", msg.topic, payload)
 
         try:
             parsed = json.loads(payload)
-            if isinstance(parsed, dict):
-                device_id = parsed.get("device_id") or parsed.get("ap_mac") or parsed.get("serial_number")
-                ap_mac = parsed.get("ap_mac")
-                serial_number = parsed.get("serial_number")
-                firmware_version = parsed.get("firmware_version")
-                uptime_seconds = parsed.get("uptime_seconds")
-                cpu_utilization_pct = parsed.get("cpu_utilization_pct")
-                memory_utilization_pct = parsed.get("memory_utilization_pct")
-                connected_clients = parsed.get("connected_clients")
-                radio_band = parsed.get("radio_band")
-                channel = parsed.get("channel")
-                channel_utilization_pct = parsed.get("channel_utilization_pct")
-                noise_floor_dbm = parsed.get("noise_floor_dbm")
-                max_connected_device = parsed.get("max_connected_device")
-                timestamp_epoch = parsed.get("timestamp")
-                logger.info("Parsed AP telemetry payload: %s", parsed)
-            else:
-                logger.info("Message is not a JSON object; storing raw payload")
-        except json.JSONDecodeError:
-            logger.info("Payload is not valid JSON; storing raw payload")
+            if not isinstance(parsed, dict):
+                logger.info("Message is not a JSON object; ignoring it")
+                return
 
-        try:
-            self.storage.insert_message(
-                topic=msg.topic,
-                payload=payload,
-                device_id=device_id,
-                ap_mac=ap_mac,
-                serial_number=serial_number,
-                firmware_version=firmware_version,
-                uptime_seconds=uptime_seconds,
-                cpu_utilization_pct=cpu_utilization_pct,
-                memory_utilization_pct=memory_utilization_pct,
-                connected_clients=connected_clients,
-                radio_band=radio_band,
-                channel=channel,
-                channel_utilization_pct=channel_utilization_pct,
-                noise_floor_dbm=noise_floor_dbm,
-                max_connected_device=max_connected_device,
-                timestamp_epoch=timestamp_epoch,
-            )
-            logger.info("Saved AP telemetry to TimescaleDB")
+            wifi_rows = self.storage.extract_wifi_rows(parsed)
+            if not wifi_rows:
+                logger.info("No wifi network payload found in message; ignoring it")
+                return
+
+            self.storage.insert_wifi_metrics(payload, msg.topic)
+            logger.info("Saved wifi telemetry rows to TimescaleDB")
+        except json.JSONDecodeError:
+            logger.info("Payload is not valid JSON; ignoring it")
         except Exception:
-            logger.exception("Failed to store AP telemetry payload in TimescaleDB")
+            logger.exception("Failed to store wifi telemetry payload in TimescaleDB")
 
     def _on_disconnect(self, client, userdata, rc, properties=None):
         logger.warning("Disconnected from MQTT broker with code %s", rc)
