@@ -1,0 +1,66 @@
+services:
+  mqtt-broker:
+    image: eclipse-mosquitto:2
+    container_name: mqtt-broker
+    ports:
+      - "1883:1883"
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+    restart: unless-stopped
+
+  timescaledb:
+    image: timescale/timescaledb:latest-pg16
+    container_name: timescaledb
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: telemetry
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - timescaledb_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana-oss:latest
+    container_name: grafana
+    ports:
+      - "3000:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    depends_on:
+      - timescaledb
+    volumes:
+      - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+    restart: unless-stopped
+
+  mqtt-server:
+    build:
+      context: .
+    container_name: mqtt-server
+    environment:
+      MQTT_BROKER_HOST: mqtt-broker
+      MQTT_BROKER_PORT: 1883
+      MQTT_CLIENT_ID: telemetry-consumer
+      MQTT_TOPIC: devices/telemetry
+      MQTT_QOS: 0
+      MQTT_KEEPALIVE: 60
+      LOG_LEVEL: INFO
+      DB_HOST: timescaledb
+      DB_PORT: 5432
+      DB_NAME: telemetry
+      DB_USER: postgres
+      DB_PASSWORD: postgres
+      DB_TABLE: telemetry
+    depends_on:
+      - mqtt-broker
+      - timescaledb
+      - grafana
+    restart: unless-stopped
+
+volumes:
+  timescaledb_data:
+  grafana_data:

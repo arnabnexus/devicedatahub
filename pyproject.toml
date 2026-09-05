@@ -1,0 +1,21 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mqtt-client"
+version = "0.1.0"
+description = "Docker-ready MQTT telemetry server"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+  "paho-mqtt==2.1.0",
+  "python-dotenv==1.0.1",
+  "psycopg[binary]==3.2.1",
+]
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]
