@@ -88,17 +88,30 @@ This starts:
 
 ## Database schema
 
-The app creates this table automatically if missing:
+The app automatically initializes the table and TimescaleDB hypertable if missing:
 
 ```sql
 CREATE TABLE IF NOT EXISTS public.telemetry (
-    id BIGSERIAL PRIMARY KEY,
-    event_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    id BIGSERIAL,
+    event_time TIMESTAMPTZ NOT NULL,
     device_id TEXT,
     topic TEXT NOT NULL,
-    payload JSONB,
     raw_payload TEXT,
-    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    max_connected_device INTEGER,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    timestamp_epoch BIGINT,
+    ap_mac TEXT,
+    serial_number TEXT,
+    firmware_version TEXT,
+    uptime_seconds INTEGER,
+    cpu_utilization_pct DOUBLE PRECISION,
+    memory_utilization_pct DOUBLE PRECISION,
+    connected_clients INTEGER,
+    radio_band TEXT,
+    channel INTEGER,
+    channel_utilization_pct DOUBLE PRECISION,
+    noise_floor_dbm DOUBLE PRECISION,
+    PRIMARY KEY (id, event_time)
 );
 
 SELECT create_hypertable('public.telemetry', 'event_time', if_not_exists => TRUE);
@@ -127,29 +140,8 @@ Set the same environment values to your cloud MQTT broker and database endpoints
 
 ## Architecture
 
-```mermaid
-flowchart LR
-    subgraph Edge[Edge Devices]
-        D1[Wi-Fi Access Point\nDevice Simulator]
-    end
+![Architecture flow](arch.png)
 
-    subgraph Broker[MQTT Broker]
-        M[Mosquitto\nPort 1883]
-    end
-
-    subgraph App[Telemetry App]
-        A[DeviceDataHub\nPython Consumer]
-        S[TimescaleDB\nStorage Layer]
-    end
-
-    subgraph Insights[Monitoring]
-        G[Grafana\nDashboards]
-    end
-
-    D1 -->|Publishes telemetry| M
-    M -->|Subscribes to devices/telemetry| A
-    A -->|Stores payloads| S
-    S -->|Query data| G
-```
+## Grafana
 
 ![Grafana dashboard](grafana/dashboard/image.png)
