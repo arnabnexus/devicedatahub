@@ -24,6 +24,11 @@ class Settings:
     db_user: str = os.getenv("DB_USER", "postgres")
     db_password: str = os.getenv("DB_PASSWORD", "postgres")
     db_table: str = os.getenv("DB_TABLE", "telemetry")
+    leader_election_enabled: bool = os.getenv("LEADER_ELECTION_ENABLED", "false").lower() == "true"
+    leader_election_lease_name: str = os.getenv("LEADER_ELECTION_LEASE_NAME", "devicedatahub-mqtt-server")
+    leader_election_lease_duration_seconds: int = int(os.getenv("LEADER_ELECTION_LEASE_DURATION_SECONDS", "15"))
+    pod_name: str = os.getenv("POD_NAME", "")
+    pod_namespace: str = os.getenv("POD_NAMESPACE", "default")
 
 
 @lru_cache(maxsize=1)

@@ -1,0 +1,106 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devicedatahub.fullname" . }}
+  labels:
+    app.kubernetes.io/name: {{ include "devicedatahub.name" . }}
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: {{ include "devicedatahub.name" . }}
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: {{ include "devicedatahub.name" . }}
+        app.kubernetes.io/instance: {{ .Release.Name }}
+      {{- with .Values.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      serviceAccountName: {{ include "devicedatahub.serviceAccountName" . }}
+      automountServiceAccountToken: {{ .Values.serviceAccount.automount }}
+      terminationGracePeriodSeconds: {{ .Values.terminationGracePeriodSeconds }}
+      securityContext:
+        {{- toYaml .Values.podSecurityContext | nindent 8 }}
+      {{- with .Values.image.pullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: mqtt-server
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: {{ .Values.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.securityContext | nindent 12 }}
+          env:
+            - name: MQTT_BROKER_HOST
+              value: {{ .Values.mqtt.host | quote }}
+            - name: MQTT_BROKER_PORT
+              value: {{ .Values.mqtt.port | quote }}
+            - name: MQTT_CLIENT_ID
+              value: {{ .Values.mqtt.clientId | quote }}
+            - name: MQTT_TOPIC
+              value: {{ .Values.mqtt.topic | quote }}
+            - name: MQTT_QOS
+              value: {{ .Values.mqtt.qos | quote }}
+            - name: MQTT_KEEPALIVE
+              value: {{ .Values.mqtt.keepalive | quote }}
+            - name: LOG_LEVEL
+              value: {{ .Values.logLevel | quote }}
+            - name: LEADER_ELECTION_ENABLED
+              value: {{ .Values.leaderElection.enabled | quote }}
+            - name: LEADER_ELECTION_LEASE_NAME
+              value: {{ .Values.leaderElection.leaseName | quote }}
+            - name: LEADER_ELECTION_LEASE_DURATION_SECONDS
+              value: {{ .Values.leaderElection.leaseDurationSeconds | quote }}
+            - name: POD_NAME
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.name
+            - name: POD_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  fieldPath: metadata.namespace
+            - name: MQTT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devicedatahub.fullname" . }}
+                  key: MQTT_USERNAME
+            - name: MQTT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devicedatahub.fullname" . }}
+                  key: MQTT_PASSWORD
+            - name: DB_HOST
+              value: {{ .Values.postgres.host | quote }}
+            - name: DB_PORT
+              value: {{ .Values.postgres.port | quote }}
+            - name: DB_NAME
+              value: {{ .Values.postgres.database | quote }}
+            - name: DB_USER
+              value: {{ .Values.postgres.user | quote }}
+            - name: DB_TABLE
+              value: {{ .Values.postgres.table | quote }}
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "devicedatahub.fullname" . }}
+                  key: DB_PASSWORD
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+      {{- with .Values.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}

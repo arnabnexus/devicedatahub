@@ -1,0 +1,67 @@
+{{- if .Values.broker.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "devicedatahub.fullname" . }}-mosquitto
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/instance: {{ .Release.Name }}
+data:
+  mosquitto.conf: |
+    persistence false
+    allow_anonymous true
+    listener 1883 0.0.0.0
+    log_dest stdout
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "devicedatahub.fullname" . }}-mqtt-broker
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: mosquitto
+      app.kubernetes.io/instance: {{ .Release.Name }}
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: mosquitto
+        app.kubernetes.io/instance: {{ .Release.Name }}
+    spec:
+      containers:
+        - name: mosquitto
+          image: {{ .Values.broker.image | quote }}
+          ports:
+            - name: mqtt
+              containerPort: 1883
+          volumeMounts:
+            - name: config
+              mountPath: /mosquitto/config/mosquitto.conf
+              subPath: mosquitto.conf
+          resources:
+            {{- toYaml .Values.broker.resources | nindent 12 }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "devicedatahub.fullname" . }}-mosquitto
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: mqtt-broker
+  labels:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/instance: {{ .Release.Name }}
+spec:
+  selector:
+    app.kubernetes.io/name: mosquitto
+    app.kubernetes.io/instance: {{ .Release.Name }}
+  ports:
+    - name: mqtt
+      port: {{ .Values.broker.service.port }}
+      targetPort: mqtt
+{{- end }}

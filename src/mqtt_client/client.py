@@ -6,6 +6,7 @@ from typing import Any
 import paho.mqtt.client as mqtt
 
 from .config import get_settings
+from .leader import KubernetesLease
 from .storage import TelemetryRepository
 
 logger = logging.getLogger(__name__)
@@ -23,6 +24,14 @@ class MqttTelemetryConsumer:
         self.settings = get_settings()
         _setup_logging()
         self.storage = TelemetryRepository()
+        self.leader_lease = None
+        if self.settings.leader_election_enabled:
+            self.leader_lease = KubernetesLease(
+                self.settings.leader_election_lease_name,
+                self.settings.pod_namespace,
+                self.settings.pod_name,
+                self.settings.leader_election_lease_duration_seconds,
+            )
         self.client = mqtt.Client(
             mqtt.CallbackAPIVersion.VERSION2,
             client_id=self.settings.client_id,
@@ -70,12 +79,21 @@ class MqttTelemetryConsumer:
         logger.debug("Disconnected from MQTT broker with code %s", reason_code)
 
     def connect(self) -> None:
+        if self.leader_lease:
+            logger.info("Waiting for leader lease '%s'", self.settings.leader_election_lease_name)
+            while not self.leader_lease.try_acquire_or_renew():
+                time.sleep(5)
+
         logger.info("Connecting to broker at %s:%s", self.settings.broker_host, self.settings.broker_port)
         self.client.connect(self.settings.broker_host, self.settings.broker_port, self.settings.keepalive)
         self.client.loop_start()
 
         try:
             while True:
+                if self.leader_lease and not self.leader_lease.try_acquire_or_renew():
+                    logger.error("Leader lease lost; disconnecting from MQTT")
+                    self.disconnect()
+                    return
                 time.sleep(1)
         except KeyboardInterrupt:
             logger.info("Shutdown requested")
@@ -93,4 +111,6 @@ class MqttTelemetryConsumer:
     def disconnect(self) -> None:
         self.client.loop_stop()
         self.client.disconnect()
+        if self.leader_lease:
+            self.leader_lease.release()
         logger.info("Disconnected from broker")

@@ -1,0 +1,112 @@
+replicaCount: 1
+
+leaderElection:
+  enabled: false
+  leaseName: devicedatahub-mqtt-server
+  leaseDurationSeconds: 15
+
+image:
+  repository: ghcr.io/your-org/devicedatahub-mqtt-server
+  tag: latest
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+nameOverride: ""
+fullnameOverride: ""
+
+mqtt:
+  host: mqtt.example.com
+  port: 1883
+  topic: devices/telemetry
+  clientId: telemetry-consumer
+  qos: 0
+  keepalive: 60
+  username: ""
+  password: ""
+
+postgres:
+  host: timescaledb.example.com
+  port: 5432
+  database: telemetry
+  user: postgres
+  password: change-me
+  table: telemetry
+
+logLevel: INFO
+
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+broker:
+  enabled: false
+  image: eclipse-mosquitto:2
+  service:
+    port: 1883
+  resources: {}
+
+timescaledb:
+  enabled: false
+  image: timescale/timescaledb:latest-pg16
+  storage:
+    size: 10Gi
+    storageClassName: ""
+  resources: {}
+
+grafana:
+  enabled: false
+  image: grafana/grafana-oss:latest
+  adminUser: admin
+  adminPassword: change-me
+  dashboard:
+    enabled: false
+    configMapName: wifi-radio-health-dashboard
+    fileName: wifi_radio_health_grafana.json
+  service:
+    port: 3000
+  storage:
+    size: 5Gi
+    storageClassName: ""
+  resources: {}
+
+podAnnotations: {}
+nodeSelector: {}
+tolerations: []
+affinity: {}
+
+podSecurityContext:
+  runAsNonRoot: true
+  runAsUser: 100
+  runAsGroup: 101
+  seccompProfile:
+    type: RuntimeDefault
+
+securityContext:
+  allowPrivilegeEscalation: false
+  readOnlyRootFilesystem: true
+  capabilities:
+    drop:
+      - ALL
+
+serviceAccount:
+  create: true
+  automount: false
+  annotations: {}
+
+service:
+  enabled: false
+  type: ClusterIP
+  port: 8080
+
+terminationGracePeriodSeconds: 30

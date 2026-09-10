@@ -1,0 +1,96 @@
+replicaCount: 2
+
+leaderElection:
+  enabled: true
+  leaseName: devicedatahub-mqtt-server
+  leaseDurationSeconds: 15
+
+image:
+  repository: devicedatahub-mqtt-server
+  tag: poc
+  pullPolicy: IfNotPresent
+  pullSecrets: []
+
+mqtt:
+  host: 0.tcp.in.ngrok.io
+  port: 24839
+  topic: weh-device/network
+  clientId: telemetry-consumer-poc
+  qos: 0
+  keepalive: 60
+  username: ""
+  password: ""
+
+postgres:
+  host: timescaledb
+  port: 5432
+  database: telemetry
+  user: postgres
+  password: postgres
+  table: telemetry
+
+logLevel: INFO
+
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 250m
+    memory: 256Mi
+
+autoscaling:
+  enabled: false
+
+broker:
+  enabled: false
+  image: eclipse-mosquitto:2
+  service:
+    port: 1883
+  resources:
+    requests:
+      cpu: 50m
+      memory: 32Mi
+    limits:
+      cpu: 200m
+      memory: 128Mi
+
+timescaledb:
+  enabled: true
+  image: timescale/timescaledb:latest-pg16
+  storage:
+    size: 2Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 250m
+      memory: 512Mi
+    limits:
+      cpu: 1000m
+      memory: 1Gi
+
+grafana:
+  enabled: true
+  image: grafana/grafana-oss:latest
+  adminUser: admin
+  adminPassword: admin
+  dashboard:
+    enabled: true
+    configMapName: wifi-radio-health-dashboard
+    fileName: wifi_radio_health_grafana.json
+  service:
+    port: 3000
+  storage:
+    size: 1Gi
+    storageClassName: ""
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 500m
+      memory: 512Mi
+
+serviceAccount:
+  create: true
+  automount: true
